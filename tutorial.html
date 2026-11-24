@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tutorial · Generador de piezas .step (modo semiasistido)</title>
+  <meta name="description" content="Cómo convertir la imagen de un esquema de mecanizado en un .step con el modo semiasistido y cargarlo en el torno simulado para mecanizarlo.">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2040%2040'%3E%3Ccircle%20cx%3D'20'%20cy%3D'20'%20r%3D'18'%20fill%3D'%23ff7a1a'%2F%3E%3Ccircle%20cx%3D'20'%20cy%3D'20'%20r%3D'6.5'%20fill%3D'%2315191d'%2F%3E%3Cpath%20d%3D'M20%203.5v9M5.7%2028.3l7.8-4.5M34.3%2028.3l-7.8-4.5'%20stroke%3D'%2315191d'%20stroke-width%3D'4.5'%2F%3E%3C%2Fsvg%3E">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/generador.css">
+  <script defer src="js/tema-paginas.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+  <header class="cabecera">
+    <div class="marca">
+      <svg class="marca__icono" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle class="marca__hueco" cx="20" cy="20" r="6.5"/><path class="marca__garras" d="M20 3.5v9M5.7 28.3l7.8-4.5M34.3 28.3l-7.8-4.5"/></svg>
+      <span class="marca__texto"><strong>TR-01</strong> <span>Tutorial del generador</span></span>
+    </div>
+    <nav class="cabecera__acciones" aria-label="Páginas">
+      <a class="chip" href="index.html" aria-label="Ir al torno"><span aria-hidden="true">⚙</span> <span>Torno</span></a>
+      <a class="chip chip--acento" href="generador.html" aria-label="Abrir el generador"><span aria-hidden="true">⬡</span> <span>Generador</span></a>
+      <button class="chip" id="btn-tema" type="button" aria-pressed="false"><span aria-hidden="true">◐</span> <span class="tema__texto">Tema oscuro</span></button>
+    </nav>
+  </header>
+
+  <main id="contenido" class="tut">
+    <section class="intro" aria-labelledby="titulo">
+      <div class="intro__texto">
+        <p class="antetitulo">Tutorial · modo semiasistido</p>
+        <h1 id="titulo">Del esquema de mecanizado al torno, en 7 pasos</h1>
+        <p class="intro__entradilla">El generador no «lee» el plano solo: <strong>tú le señalas</strong> la escala, el eje y las esquinas del contorno, y él convierte los píxeles en milímetros, endereza el plano, redondea y escribe un <strong>.step</strong> de verdad. Después lo cargas en el torno y el ciclo demo lo mecaniza.</p>
+        <ol class="flujo" aria-label="Flujo de trabajo">
+          <li>Esquema</li><li>Escala</li><li>Eje</li><li>Contorno</li><li>Cotas</li><li>.step</li><li>Torno</li>
+        </ol>
+      </div>
+    </section>
+
+    <nav aria-label="Índice del tutorial">
+      <ul class="tut__indice">
+        <li><a href="#por-que">¿Por qué semiasistido?</a></li>
+        <li><a href="#paso1">1 · Abrir el esquema</a></li>
+        <li><a href="#paso2">2 · Escala</a></li>
+        <li><a href="#paso3">3 · Eje</a></li>
+        <li><a href="#paso4">4 · Contorno</a></li>
+        <li><a href="#paso5">5 · Cotas exactas</a></li>
+        <li><a href="#paso6">6 · Descargar el .step</a></li>
+        <li><a href="#paso7">7 · Mecanizar en el torno</a></li>
+        <li><a href="#atajos">Atajos</a></li>
+        <li><a href="#limites">Límites</a></li>
+        <li><a href="#problemas">Problemas</a></li>
+      </ul>
+    </nav>
+
+    <section class="tarjeta tut__paso tut__paso--ancho" id="por-que" aria-labelledby="h-por-que">
+      <div>
+        <p class="tut__num">Antes de empezar</p>
+        <h2 id="h-por-que">¿Por qué «semiasistido» y no automático?</h2>
+        <p>Un plano escaneado mezcla el contorno con cotas, flechas, rayados, textos y manchas. Un reconocimiento automático sin conexión ni librerías se equivocaría a menudo, y una cota mal leída arruina la pieza. Por eso el trabajo se reparte:</p>
+        <table class="tut__tabla">
+          <thead><tr><th scope="col">Lo haces tú (lo que a una máquina le cuesta)</th><th scope="col">Lo hace el generador (lo que a ti te cuesta)</th></tr></thead>
+          <tbody>
+            <tr><td>Decir qué cota conoces y cuánto mide</td><td>Calcular los píxeles por milímetro</td></tr>
+            <tr><td>Señalar la línea del eje</td><td>Corregir el giro si el escaneo está torcido</td></tr>
+            <tr><td>Elegir las esquinas del contorno</td><td>Pegarlas a la línea (imán), dejar exactos cilindros y escalones (ortogonal) y redondear</td></tr>
+            <tr><td>Revisar las cifras con las cotas del plano</td><td>Comprobar que la pieza cabe en el torno y escribir el B-rep del .step</td></tr>
+          </tbody>
+        </table>
+        <p class="consejo"><strong>Para practicar</strong> tienes un plano de ejemplo: botón <strong>«Usar el ejemplo»</strong> en el generador, o abre <code>ejemplos/eje-ejemplo.svg</code> con «Abrir esquema…». La solución está en <code>ejemplos/eje-ejemplo.step</code>.</p>
+      </div>
+    </section>
+
+    <section class="tarjeta tut__paso" id="paso1" aria-labelledby="h1">
+      <div>
+        <p class="tut__num">Paso 1</p>
+        <h2 id="h1">Abrir el esquema</h2>
+        <ol>
+          <li>Abre <a href="generador.html">generador.html</a> (doble clic; no hace falta servidor).</li>
+          <li>Pulsa <strong>«Abrir esquema…»</strong>: se abre la ventana de búsqueda de archivos del sistema. También puedes <strong>arrastrar la imagen</strong> encima del recuadro.</li>
+          <li>Formatos: PNG, JPG, WebP o SVG.</li>
+        </ol>
+        <p class="consejo">El esquema debe ser una <strong>vista de alzado</strong> (la pieza tumbada, sin perspectiva). Si es una foto del papel, hazla de frente y con buena luz: el imán busca líneas oscuras sobre fondo claro.</p>
+        <p class="consejo consejo--aviso">La imagen <strong>no sale de tu ordenador</strong>: se lee en el navegador con <code>FileReader</code>.</p>
+      </div>
+      <figure class="tut__figura">
+        <svg viewBox="0 0 600 360" role="img" aria-label="Esquema de ejemplo: eje escalonado de 100 mm con cotas de diámetro y de longitud"><defs><marker id="ft" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#e05d00"/></marker></defs><image href="ejemplos/eje-ejemplo.svg" x="0" y="0" width="600" height="360"/></svg>
+        <figcaption>El esquema de ejemplo: un eje escalonado de 100 mm con una ranura, un cono y un chaflán.</figcaption>
+      </figure>
+    </section>
+
+    <section class="tarjeta tut__paso" id="paso2" aria-labelledby="h2">
+      <div>
+        <p class="tut__num">Paso 2 · herramienta 1</p>
+        <h2 id="h2">Calibrar la escala</h2>
+        <ol>
+          <li>Con la herramienta <strong>1 · Escala</strong> (se activa sola al abrir la imagen), haz clic en <strong>un extremo</strong> de una cota que conozcas.</li>
+          <li>Haz clic en el <strong>otro extremo</strong> de la misma cota.</li>
+          <li>Escribe cuántos <strong>mm</strong> indica esa cota y pulsa <strong>Aceptar</strong>.</li>
+        </ol>
+        <p>Arriba a la derecha verás los <strong>px/mm</strong> calculados (en el ejemplo, 8,00 px/mm).</p>
+        <p class="consejo">Elige la <strong>cota más larga</strong> (la longitud total es ideal): un error de 2 píxeles en una cota de 100 mm es un 0,25 %; en una de 5 mm, un 5 %.</p>
+        <p class="consejo">Puedes repetir la escala cuando quieras: si ya habías marcado el contorno, sus medidas se <strong>reescalan</strong> solas.</p>
+      </div>
+      <figure class="tut__figura">
+        <svg viewBox="0 0 600 360" role="img" aria-label="Paso de escala: clic en los dos extremos de la cota total de 100 mm"><defs><marker id="ft" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#e05d00"/></marker></defs><image href="ejemplos/eje-ejemplo.svg" x="0" y="0" width="600" height="360"/><line x1="80" y1="290" x2="480" y2="290" stroke="#1d6dcc" stroke-width="4" opacity=".75"/><g><circle cx="80" cy="290" r="9" fill="#1d6dcc" stroke="#fff" stroke-width="2"/><text x="80" y="294" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">1</text></g><g><circle cx="480" cy="290" r="9" fill="#1d6dcc" stroke="#fff" stroke-width="2"/><text x="480" y="294" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">2</text></g><g><rect x="112" y="304" width="157.2" height="20" rx="5" fill="#1d6dcc"/><text x="118" y="318" font-family="Consolas,monospace" font-size="11" fill="#fff">¿Cuánto mide? → 100 mm</text></g></svg>
+        <figcaption>Clic en ① y ② (los extremos de la cota de 100) y escribe 100.</figcaption>
+      </figure>
+    </section>
+
+    <section class="tarjeta tut__paso" id="paso3" aria-labelledby="h3">
+      <div>
+        <p class="tut__num">Paso 3 · herramienta 2</p>
+        <h2 id="h3">Marcar el eje</h2>
+        <ol>
+          <li>Con <strong>2 · Eje</strong>, haz clic sobre la <strong>línea de trazo y punto</strong> cerca de un extremo de la pieza.</li>
+          <li>Haz clic otra vez sobre el eje, cerca del <strong>otro extremo</strong>.</li>
+        </ol>
+        <p>El eje dice al generador dónde está el centro de la pieza (los diámetros se miden desde ahí) y si el escaneo está <strong>torcido</strong>: el ángulo aparece junto a los px/mm.</p>
+        <p class="consejo">Cuanto más separados estén los dos clics, más preciso será el ángulo.</p>
+        <p class="consejo consejo--aviso">Si cambias el eje después de marcar el contorno, el contorno se borra (sus milímetros dependían del eje anterior). <kbd>Ctrl</kbd>+<kbd>Z</kbd> lo recupera.</p>
+      </div>
+      <figure class="tut__figura">
+        <svg viewBox="0 0 600 360" role="img" aria-label="Paso del eje: dos clics sobre la línea de trazo y punto"><defs><marker id="ft" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#e05d00"/></marker></defs><image href="ejemplos/eje-ejemplo.svg" x="0" y="0" width="600" height="360"/><line x1="20" y1="170" x2="580" y2="170" stroke="#e05d00" stroke-width="2.5" stroke-dasharray="16 5 3 5"/><g><circle cx="60" cy="170" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="60" y="174" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">1</text></g><g><circle cx="500" cy="170" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="500" y="174" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">2</text></g><g><rect x="200" y="144" width="269.4" height="20" rx="5" fill="#e05d00"/><text x="206" y="158" font-family="Consolas,monospace" font-size="11" fill="#fff">eje: dos clics lo más separados posible</text></g></svg>
+        <figcaption>Dos clics sobre el eje: ① a la izquierda y ② a la derecha de la pieza.</figcaption>
+      </figure>
+    </section>
+
+    <section class="tarjeta tut__paso" id="paso4" aria-labelledby="h4">
+      <div>
+        <p class="tut__num">Paso 4 · herramienta 3</p>
+        <h2 id="h4">Marcar el contorno</h2>
+        <ol>
+          <li>Con <strong>3 · Contorno</strong>, haz clic en la <strong>esquina superior del extremo del plato</strong> (normalmente la izquierda).</li>
+          <li>Sigue <strong>esquina a esquina</strong> hacia la cara libre: cada cambio de diámetro son <strong>dos esquinas</strong> (arriba y abajo del escalón).</li>
+          <li>Termina en la última esquina de la cara. <strong>No marques el eje</strong>: los extremos se cierran solos.</li>
+        </ol>
+        <p>Antes de cada clic, una <strong>goma</strong> naranja te enseña el punto que se va a guardar, con su Z y su Ø. Si sale en rojo, el punto no es válido (vuelve hacia atrás, está sobre el eje…) y la línea de ayuda te dice por qué.</p>
+        <p>Las tres ayudas:</p>
+        <ul>
+          <li><strong>Imán a líneas</strong>: busca la línea paralela al eje y la perpendicular más cercanas al clic y se pega al <strong>centro del trazo</strong>. Cerca de una esquina, se pega a la esquina.</li>
+          <li><strong>Ortogonal</strong>: si el punto casi tiene la misma Z que el anterior, lo deja como un escalón exacto; si casi tiene el mismo Ø, como un cilindro exacto. Si vuelves a un Ø que ya usaste (por ejemplo, después de una ranura), lo reutiliza.</li>
+          <li><strong>Redondeo</strong>: Z y Ø se redondean (0,5 mm por defecto, porque es lo habitual en las cotas).</li>
+        </ul>
+        <p class="consejo">Usa la <strong>lupa</strong> (arriba a la derecha del esquema) y la <strong>rueda</strong> para hacer zoom. Para mover la imagen, <strong>arrástrala</strong>. Si te equivocas, <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</p>
+      </div>
+      <figure class="tut__figura">
+        <svg viewBox="0 0 600 360" role="img" aria-label="Paso del contorno: un clic en cada una de las 11 esquinas del contorno superior, de izquierda a derecha"><defs><marker id="ft" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#e05d00"/></marker></defs><image href="ejemplos/eje-ejemplo.svg" x="0" y="0" width="600" height="360"/><polyline points="80,170 80,82 200,82 200,98 300,98 300,110 320,110 320,98 380,98 420,114 476,114 480,118 480,170" fill="none" stroke="#e05d00" stroke-width="3"  opacity=".9"/><polyline points="80,170 80,258 200,258 200,242 300,242 300,230 320,230 320,242 380,242 420,226 476,226 480,222 480,170" fill="none" stroke="#e05d00" stroke-width="1.5" stroke-dasharray="6 4" opacity=".9"/><g><circle cx="73" cy="68" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="73" y="72" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">1</text></g><g><circle cx="207" cy="68" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="207" y="72" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">2</text></g><g><circle cx="193" cy="84" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="193" y="88" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">3</text></g><g><circle cx="307" cy="84" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="307" y="88" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">4</text></g><g><circle cx="293" cy="96" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="293" y="100" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">5</text></g><g><circle cx="327" cy="96" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="327" y="100" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">6</text></g><g><circle cx="313" cy="84" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="313" y="88" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">7</text></g><g><circle cx="387" cy="84" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="387" y="88" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">8</text></g><g><circle cx="413" cy="100" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="413" y="104" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">9</text></g><g><circle cx="483" cy="100" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="483" y="104" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">10</text></g><g><circle cx="473" cy="104" r="9" fill="#e05d00" stroke="#fff" stroke-width="2"/><text x="473" y="108" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#fff">11</text></g><line x1="120" y1="40" x2="440" y2="40" stroke="#e05d00" stroke-width="2" marker-end="url(#ft)"/><g><rect x="168" y="48" width="163.79999999999998" height="20" rx="5" fill="#e05d00"/><text x="174" y="62" font-family="Consolas,monospace" font-size="11" fill="#fff">del plato hacia la cara</text></g></svg>
+        <figcaption>Las 11 esquinas del ejemplo, de ① a ⑪. En discontinuo, el reflejo que dibuja el generador: así compruebas que el contorno encaja con el plano.</figcaption>
+      </figure>
+    </section>
+
+    <section class="tarjeta tut__paso" id="paso5" aria-labelledby="h5">
+      <div>
+        <p class="tut__num">Paso 5</p>
+        <h2 id="h5">Poner las cotas exactas</h2>
+        <p>Los clics dan una <strong>aproximación</strong>. El plano manda: revisa la tabla <strong>Puntos del contorno</strong> y escribe los valores exactos de las cotas.</p>
+        <ul>
+          <li><strong>Z</strong>: distancia desde el extremo del plato (el primer punto es 0).</li>
+          <li><strong>Ø</strong>: diámetro (no radio), como en el plano.</li>
+          <li>La columna <strong>Tramo</strong> dice qué forma cada punto con el anterior: cilindro, escalón ↑/↓, cono o chaflán (con su ángulo).</li>
+          <li>Al pasar por un campo, su punto se resalta en verde sobre el esquema.</li>
+          <li><strong>✕</strong> borra un punto.</li>
+        </ul>
+        <p class="consejo">En el ejemplo, la punta del chaflán (punto ⑪) no tiene ninguna línea paralela al eje a la que pegarse, así que puede salir Ø26,5. Escribe <strong>26</strong>: la cota «1×45°» dice que es Ø28 − 2 × 1.</p>
+        <p class="consejo"><strong>Sin imagen</strong>: con «Añadir un tramo escribiendo las cotas» puedes hacer la pieza entera a mano. Escribe Ø inicial, Ø final (vacío = cilindro) y longitud. Si el Ø inicial cambia, se crea el escalón solo.</p>
+      </div>
+      <div>
+        <table class="tut__tabla" aria-label="Ejemplo de la tabla corregida">
+          <thead><tr><th scope="col">#</th><th scope="col">Z</th><th scope="col">Ø</th><th scope="col">Tramo</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>0</td><td>44</td><td>inicio (plato)</td></tr>
+            <tr><td>2</td><td>30</td><td>44</td><td>cilindro 30 mm</td></tr>
+            <tr><td>3</td><td>30</td><td>36</td><td>escalón ↓</td></tr>
+            <tr><td>4</td><td>55</td><td>36</td><td>cilindro 25 mm</td></tr>
+            <tr><td>5</td><td>55</td><td>30</td><td>escalón ↓</td></tr>
+            <tr><td>6</td><td>60</td><td>30</td><td>cilindro 5 mm</td></tr>
+            <tr><td>7</td><td>60</td><td>36</td><td>escalón ↑</td></tr>
+            <tr><td>8</td><td>75</td><td>36</td><td>cilindro 15 mm</td></tr>
+            <tr><td>9</td><td>85</td><td>28</td><td>cono 10 mm</td></tr>
+            <tr><td>10</td><td>99</td><td>28</td><td>cilindro 14 mm</td></tr>
+            <tr><td>11</td><td>100</td><td>26</td><td>chaflán 1 mm</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="tarjeta tut__paso" id="paso6" aria-labelledby="h6">
+      <div>
+        <p class="tut__num">Paso 6</p>
+        <h2 id="h6">Revisar y descargar el .step</h2>
+        <ol>
+          <li>Mira la <strong>vista previa</strong>: la pieza dibujada a escala dentro de la barra del torno (discontinua, Ø50).</li>
+          <li>Lee las <strong>comprobaciones</strong>: <span style="color:var(--ok)">✓</span> correcto, <span style="color:var(--aviso)">!</span> aviso (se puede descargar, pero el torno no podrá hacerlo todo), <span style="color:var(--mal)">✕</span> error (no deja descargar).</li>
+          <li>Escribe el <strong>nombre de la pieza</strong> y pulsa <strong>«Descargar .step»</strong>.</li>
+        </ol>
+        <p>El archivo es un <strong>sólido de revolución</strong> (ISO 10303-21, AP214) con caras planas, cilíndricas y cónicas, en milímetros y con el eje de revolución en Z. Se abre en FreeCAD, Fusion o SolidWorks. Antes de descargarlo, el generador lo <strong>vuelve a leer</strong> con el mismo lector que usa el torno: si se descarga, el torno lo podrá cargar.</p>
+      </div>
+      <div>
+        <p class="consejo">Errores que bloquean la descarga:</p>
+        <ul>
+          <li>Menos de 2 puntos.</li>
+          <li>Un punto que vuelve hacia el plato (Z menor que la del anterior).</li>
+          <li>Empezar o terminar con un escalón (el primer y el último tramo deben ser un cilindro, un cono o un chaflán).</li>
+        </ul>
+        <p class="consejo consejo--aviso">Avisos: Ø mayor que 50, longitud mayor que 136 mm, Ø menor que 8, o una ranura más estrecha que la cuchilla (1,2 mm).</p>
+      </div>
+    </section>
+
+    <section class="tarjeta tut__paso" id="paso7" aria-labelledby="h7">
+      <div>
+        <p class="tut__num">Paso 7 · en el torno</p>
+        <h2 id="h7">Cargar la pieza y mecanizarla</h2>
+        <ol>
+          <li>Abre <a href="index.html">el torno</a> y baja a la tarjeta <strong>Perfil de la pieza</strong>.</li>
+          <li>Pulsa <strong>«Cargar pieza (.step)…»</strong>: se abre la <strong>ventana de búsqueda de archivos</strong>. Elige tu <code>.step</code>.</li>
+          <li>El contorno de la pieza aparece en <strong>naranja discontinuo</strong> sobre el plano, y en el gemelo 3D el material que sobra se tiñe de naranja.</li>
+          <li>Si la pieza ha quedado al revés (la cara libre en el lado del plato), pulsa <strong>«⇄ Voltear»</strong>.</li>
+          <li>Pulsa <strong>«▶ Ciclo demo»</strong>: el operario fantasma hace el <strong>desbaste por capas</strong> de 1,5 mm (deja 0,3 mm) y una pasada de <strong>acabado</strong> que copia el contorno.</li>
+          <li>La línea de estado dice el <strong>% hecho</strong>, el sobremetal que queda y si la pieza está <strong>a cota (±0,1 mm)</strong>. Lo que te pases de cota se marca en <strong>rojo</strong>.</li>
+        </ol>
+        <p class="consejo">También puedes mecanizarla <strong>a mano</strong> con las manivelas: el contorno naranja te dice hasta dónde bajar.</p>
+        <p class="consejo">El lector del torno acepta STEP de <strong>otros CAD</strong> si la pieza es de revolución y se tornea por fuera: busca el eje con las aristas circulares y reconstruye el contorno con las costuras y los arcos.</p>
+      </div>
+      <figure class="tut__figura">
+        <svg viewBox="0 0 600 260" role="img" aria-label="Plano del torno con la barra Ø50 en bruto y el contorno de la pieza cargada en naranja discontinuo">
+  <rect width="600" height="260" fill="#0d161d"/>
+  <rect x="60" y="40" width="448" height="160" fill="#22384a" stroke="#cfe3f1" stroke-width="1.4"/>
+  <rect x="188" y="40" width="320" height="160" fill="#ff7a1a" opacity=".16"/>
+  <polyline points="188,49.599999999999994 284,49.599999999999994 284,62.4 364,62.4 364,72 380,72 380,62.4 428,62.4 460,75.19999999999999 504.8,75.19999999999999 508,78.4" fill="none" stroke="#e05d00" stroke-width="2" stroke-dasharray="6 4"/><polyline points="188,190.4 284,190.4 284,177.6 364,177.6 364,168 380,168 380,177.6 428,177.6 460,164.8 504.8,164.8 508,161.6" fill="none" stroke="#e05d00" stroke-width="2" stroke-dasharray="6 4"/>
+  <line x1="20" y1="120" x2="580" y2="120" stroke="#ff9a4a" stroke-dasharray="16 4 3 4"/>
+  <rect x="-4" y="-8" width="64" height="256" fill="#182630" stroke="#5b7184"/>
+  <text x="194" y="32" font-family="Consolas,monospace" font-size="11" fill="#ffb547">sobremetal (naranja en el 3D)</text>
+  <text x="386.40000000000003" y="222" font-family="Consolas,monospace" font-size="11" fill="#ff9a4a" text-anchor="middle">pieza cargada a cota</text>
+  <text x="28" y="222" font-family="Consolas,monospace" font-size="11" fill="#95a7b5" text-anchor="middle">plato</text>
+  <text x="512" y="32" font-family="Consolas,monospace" font-size="11" fill="#95a7b5">cara (Z 0)</text>
+</svg>
+        <figcaption>El plano del torno con la pieza del ejemplo cargada: la barra Ø50 en bruto, el contorno a cota (naranja discontinuo) y el sobremetal que se quitará.</figcaption>
+      </figure>
+    </section>
+
+    <section class="tarjeta tut__paso tut__paso--ancho" id="atajos" aria-labelledby="h-atajos">
+      <div>
+        <p class="tut__num">Referencia</p>
+        <h2 id="h-atajos">Atajos del generador</h2>
+        <table class="tut__tabla">
+          <tbody>
+            <tr><th scope="row">Clic</th><td>Marcar un punto con la herramienta activa</td></tr>
+            <tr><th scope="row">Arrastrar</th><td>Mover la imagen (el botón central del ratón también)</td></tr>
+            <tr><th scope="row">Rueda</th><td>Zoom alrededor del cursor</td></tr>
+            <tr><th scope="row"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></th><td>Herramienta Escala, Eje o Contorno</td></tr>
+            <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>Z</kbd></th><td>Deshacer (también cancela un clic a medias)</td></tr>
+            <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancelar la escala o el eje a medias</td></tr>
+            <tr><th scope="row"><kbd>0</kbd> · <kbd>+</kbd> · <kbd>−</kbd></th><td>Ajustar la imagen al recuadro · acercar · alejar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="tarjeta tut__paso tut__paso--ancho" id="limites" aria-labelledby="h-limites">
+      <div>
+        <p class="tut__num">Qué no hace</p>
+        <h2 id="h-limites">Límites</h2>
+        <ul>
+          <li><strong>Solo exteriores</strong>: el contorno es el de fuera. Taladros, roscas interiores y mandrinados no se representan (el lector del torno se queda con la envolvente exterior).</li>
+          <li><strong>Tramos rectos</strong>: cilindros, conos, chaflanes, escalones y ranuras. Un radio de acuerdo se aproxima con un cono corto (o con varios puntos). El lector del torno sí entiende los arcos de un STEP hecho en otro CAD.</li>
+          <li><strong>Torno simulado</strong>: barra Ø50, 136 mm útiles desde la cara, Ø mínimo 8 y cuchilla de 1,2 mm de filo.</li>
+          <li><strong>Roscas</strong>: el plano suele dibujar el diámetro nominal. Ponlo como un cilindro.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="tarjeta tut__paso tut__paso--ancho" id="problemas" aria-labelledby="h-problemas">
+      <div>
+        <p class="tut__num">Si algo falla</p>
+        <h2 id="h-problemas">Problemas frecuentes</h2>
+        <table class="tut__tabla">
+          <thead><tr><th scope="col">Lo que pasa</th><th scope="col">Por qué y qué hacer</th></tr></thead>
+          <tbody>
+            <tr><td>El punto se va a otra línea (una cota, una flecha)</td><td>El imán coge la línea oscura más cercana. Haz zoom (las cotas quedan más lejos en píxeles de pantalla) o desactiva «Imán a líneas» para ese punto.</td></tr>
+            <tr><td>Sale Ø44,5 en vez de Ø44</td><td>Normal en el modo semiasistido: corrígelo en la tabla. Si pasa en todos los puntos, revisa la escala (paso 2).</td></tr>
+            <tr><td>Un cono corto se me queda plano</td><td>El modo ortogonal lo ha tomado por un cilindro. Desactiva «Ortogonal» para ese punto o corrige el Ø en la tabla.</td></tr>
+            <tr><td>«Ese punto vuelve hacia atrás»</td><td>El contorno se marca de izquierda a derecha (del plato a la cara). Si tu plano tiene el plato a la derecha, márcalo de derecha a izquierda desde el primer clic: el sentido lo fija el segundo punto.</td></tr>
+            <tr><td>En el torno la pieza sale al revés</td><td>Pulsa «⇄ Voltear» en la tarjeta Perfil de la pieza.</td></tr>
+            <tr><td>«No hay aristas circulares: no parece una pieza de revolución»</td><td>El STEP no es de un sólido de revolución (o es una pieza fresada). El torno solo mecaniza piezas de revolución.</td></tr>
+            <tr><td>La imagen no se ve o «no es una imagen»</td><td>Usa PNG, JPG, WebP o SVG. Los PDF no se abren: haz antes una captura de pantalla del plano.</td></tr>
+          </tbody>
+        </table>
+        <div class="tut__cta">
+          <a class="boton boton--acento" href="generador.html">Abrir el generador →</a>
+          <a class="boton" href="index.html">Ir al torno</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p><strong>TR-01 · Tutorial del generador</strong> — funciona sin conexión y con doble clic.</p>
+  </footer>
+</body>
+</html>

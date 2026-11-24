@@ -1,0 +1,121 @@
+/* =====================================================================
+   Generador de piezas y tutorial — estilos propios. Reutiliza los tokens (colores, tipografías, .tarjeta,
+   .boton, .chip, .segmentado…) de estilos.css para que las tres páginas se vean como una sola aplicación.
+   ===================================================================== */
+.visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.chip--acento { border-color: var(--acento); color: var(--acento); }
+.intro a, .tut a { color: var(--acento); }
+kbd { font: 600 .74rem var(--mono); padding: .05rem .35rem; border: 1px solid var(--borde-fuerte); border-bottom-width: 2px; border-radius: 5px; background: var(--tarjeta-2); }
+
+/* ---------- pasos (progreso del modo semiasistido) ---------- */
+.pasos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .35rem; counter-reset: paso; justify-content: flex-end; }
+.pasos li {
+  counter-increment: paso; display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .7rem .3rem .35rem;
+  border: 1px solid var(--borde-fuerte); border-radius: 999px; font: 600 .8rem var(--sans); color: var(--texto-tenue); background: var(--tarjeta);
+}
+.pasos li::before {
+  content: counter(paso); display: grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 50%;
+  background: var(--tarjeta-2); border: 1px solid var(--borde-fuerte); font: 700 .72rem var(--mono);
+}
+.pasos li[data-estado="hecho"] { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.pasos li[data-estado="hecho"]::before { content: "✓"; background: var(--ok); color: var(--fondo); border-color: transparent; }
+.pasos li[data-estado="actual"] { color: var(--acento); border-color: var(--acento); }
+.pasos li[data-estado="actual"]::before { background: var(--acento); color: var(--acento-texto); border-color: transparent; }
+
+/* ---------- tablero del generador ---------- */
+.gen__tablero { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1rem; }
+.gen__esquema { grid-column: span 8; grid-row: span 2; }
+.gen__datos { grid-column: span 4; }
+.gen__previa { grid-column: span 4; }
+.gen__barra, .gen__botones { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+.gen__herramientas { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; }
+.gen__zoom { display: flex; gap: .3rem; margin-left: auto; }
+.casilla { display: inline-flex; align-items: center; gap: .35rem; font-size: .84rem; color: var(--texto-suave); }
+.casilla input { accent-color: var(--acento); }
+.casilla select, .campo input, .gen__tabla input, .gen__tramo input, .gen__escala input {
+  font: .85rem var(--mono); color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--borde-fuerte); border-radius: 7px; padding: .28rem .45rem;
+}
+.gen__lienzo {
+  position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--borde); min-height: 360px; aspect-ratio: 16 / 10;
+  background: repeating-conic-gradient(var(--tarjeta-2) 0 25%, var(--tarjeta) 0 50%) 0 0 / 22px 22px;   /* "transparente" de editor de imágenes */
+}
+.gen__lienzo[data-arrastrando="true"] { outline: 3px dashed var(--acento); outline-offset: -6px; }
+#lienzo-esquema { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+#lienzo-esquema[data-modo="mover"] { cursor: grab; }
+.gen__vacio { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: .3rem; padding: 1rem; color: var(--texto-suave); pointer-events: none; }
+.gen__vacio strong { color: var(--texto); }
+.gen__escala {
+  position: absolute; left: 50%; bottom: 1rem; translate: -50% 0; display: grid; gap: .4rem; padding: .8rem 1rem;
+  background: var(--tarjeta); border: 1px solid var(--acento); border-radius: 12px; box-shadow: 0 14px 40px -12px rgb(0 0 0 / .7); font-size: .88rem;
+}
+.gen__fila { display: inline-flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.gen__escala input { width: 7rem; }
+.gen__ayuda { font-size: .85rem; color: var(--texto); min-height: 2.6em; }
+.gen__ayuda[data-nivel="aviso"] { color: var(--aviso); }
+.gen__atajos { font-size: .76rem; color: var(--texto-tenue); }
+.campo { display: grid; gap: .25rem; font-size: .82rem; color: var(--texto-suave); }
+.gen__tabla-caja { max-height: 330px; overflow: auto; border: 1px solid var(--borde); border-radius: 10px; }
+.gen__tabla { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.gen__tabla th { position: sticky; top: 0; background: var(--tarjeta-2); text-align: left; font-weight: 700; color: var(--texto-suave); padding: .4rem .45rem; }
+.gen__tabla td { padding: .25rem .45rem; border-top: 1px solid var(--borde); }
+.gen__tabla td:first-child { font: .78rem var(--mono); color: var(--texto-tenue); }
+.gen__tabla input { width: 5.6rem; }
+.gen__tabla tr[data-sel="true"] td { background: color-mix(in srgb, var(--acento) 14%, transparent); }
+.gen__tabla .tramo { font-size: .76rem; color: var(--texto-suave); white-space: nowrap; }
+.gen__tabla button { border: 0; background: none; color: var(--texto-tenue); font-size: 1rem; padding: .1rem .3rem; border-radius: 6px; }
+.gen__tabla button:hover { color: var(--mal); }
+.gen__tabla-vacia td { text-align: center; color: var(--texto-tenue); padding: 1rem; }
+.gen__manual summary { cursor: pointer; font-weight: 700; font-size: .88rem; }
+.gen__tramo { display: flex; flex-wrap: wrap; gap: .45rem; align-items: end; margin: .6rem 0 .3rem; }
+.gen__tramo label { display: grid; gap: .2rem; font-size: .78rem; color: var(--texto-suave); }
+.gen__tramo input { width: 6rem; }
+#lienzo-previa { width: 100%; aspect-ratio: 2 / 1; min-height: 170px; border-radius: 10px; border: 1px solid var(--borde); }
+.comprobaciones { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; font-size: .82rem; }
+.comprobaciones li { padding-left: 1.4rem; position: relative; color: var(--texto-suave); }
+.comprobaciones li::before { position: absolute; left: 0; font-weight: 800; }
+.comprobaciones li[data-nivel="ok"]::before { content: "✓"; color: var(--ok); }
+.comprobaciones li[data-nivel="aviso"]::before { content: "!"; color: var(--aviso); }
+.comprobaciones li[data-nivel="mal"]::before { content: "✕"; color: var(--mal); }
+.comprobaciones li[data-nivel="mal"] { color: var(--texto); }
+
+/* ---------- tutorial ---------- */
+.tut { max-width: 1100px; }
+.tut__indice { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 1.4rem; padding: 0; list-style: none; }
+.tut__indice a { display: inline-block; padding: .3rem .7rem; border: 1px solid var(--borde-fuerte); border-radius: 999px; text-decoration: none; color: var(--texto-suave); font-size: .82rem; font-weight: 600; background: var(--tarjeta); }
+.tut__indice a:hover { color: var(--acento); border-color: var(--acento); }
+.tut__paso { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 1.2rem 1.6rem; align-items: start; scroll-margin-top: 5rem; margin-bottom: 1rem; }
+.tut__paso--ancho { grid-template-columns: minmax(0, 1fr); }
+.tut__num { font: 800 .8rem var(--mono); color: var(--acento); letter-spacing: .1em; text-transform: uppercase; }
+.tut__paso h2 { font-size: 1.25rem; text-transform: none; letter-spacing: 0; margin: .2rem 0 .5rem; }
+.tut__paso p, .tut__paso li { color: var(--texto-suave); }
+.tut__paso p + p { margin-top: .55rem; }
+.tut__paso strong { color: var(--texto); }
+.tut__paso ol, .tut__paso ul { margin: .5rem 0 0; padding-left: 1.2rem; display: grid; gap: .3rem; }
+.tut__figura { margin: 0; display: grid; gap: .4rem; }
+.tut__figura svg { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--borde); background: #fbfaf6; }
+.tut__figura figcaption { font-size: .78rem; color: var(--texto-tenue); }
+.consejo { margin-top: .7rem !important; padding: .55rem .8rem; border-left: 4px solid var(--info); background: color-mix(in srgb, var(--info) 9%, var(--tarjeta)); border-radius: 8px; font-size: .88rem; }
+.consejo--aviso { border-left-color: var(--aviso); background: color-mix(in srgb, var(--aviso) 9%, var(--tarjeta)); }
+.tut__tabla { width: 100%; border-collapse: collapse; font-size: .86rem; margin-top: .5rem; }
+.tut__tabla th, .tut__tabla td { text-align: left; padding: .4rem .55rem; border-top: 1px solid var(--borde); vertical-align: top; }
+.tut__tabla th { color: var(--texto-suave); font-weight: 700; }
+.flujo { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .8rem 0 0; padding: 0; list-style: none; }
+.flujo li { padding: .45rem .75rem; border-radius: 10px; border: 1px solid var(--borde-fuerte); background: var(--tarjeta-2); font-weight: 700; font-size: .85rem; color: var(--texto) !important; }
+.flujo li:not(:last-child)::after { content: "→"; margin-left: .55rem; color: var(--acento); }
+.tut__cta { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+.tut__cta .boton { text-decoration: none; color: inherit; }
+.tut__cta .boton--acento { color: var(--acento-texto); }
+
+/* ---------- pantallas medianas y móviles ---------- */
+@media (max-width: 1100px) {
+  .gen__esquema { grid-column: 1 / -1; grid-row: auto; }
+  .gen__datos, .gen__previa { grid-column: span 6; }
+}
+@media (max-width: 760px) {
+  .gen__datos, .gen__previa { grid-column: 1 / -1; }
+  .gen__lienzo { aspect-ratio: 4 / 5; min-height: 300px; }
+  .gen__zoom { margin-left: 0; }
+  .pasos { justify-content: flex-start; }
+  .tut__paso { grid-template-columns: minmax(0, 1fr); }
+  .intro { grid-template-columns: minmax(0, 1fr); }
+}

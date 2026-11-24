@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TR-01 · Torno remoto (mock)</title>
+  <meta name="description" content="Panel de supervisión remota de un torno paralelo simulado: gemelo digital 3D, telemetría, GRAFCET, registro de eventos, pupitre y manivelas.">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2040%2040'%3E%3Ccircle%20cx%3D'20'%20cy%3D'20'%20r%3D'18'%20fill%3D'%23ff7a1a'%2F%3E%3Ccircle%20cx%3D'20'%20cy%3D'20'%20r%3D'6.5'%20fill%3D'%2315191d'%2F%3E%3Cpath%20d%3D'M20%203.5v9M5.7%2028.3l7.8-4.5M34.3%2028.3l-7.8-4.5'%20stroke%3D'%2315191d'%20stroke-width%3D'4.5'%2F%3E%3C%2Fsvg%3E">
+  <link rel="stylesheet" href="css/estilos.css">
+  <!-- Scripts CLÁSICOS con defer, en orden de dependencias: la web se abre con DOBLE CLIC (file://).
+       Cada archivo publica lo que comparte en window.Torno; main.js va el último y lo arranca todo. -->
+  <script defer src="vendor/anime.umd.min.js"></script>
+  <script defer src="js/soporte.js"></script>
+  <script defer src="js/gl.js"></script>
+  <script defer src="js/maquina.js"></script>
+  <script defer src="js/remoto.js"></script>
+  <script defer src="js/enlace.js"></script>
+  <script defer src="js/telemetria.js"></script>
+  <script defer src="js/registro.js"></script>
+  <script defer src="js/grafcet.js"></script>
+  <script defer src="js/step.js"></script>      <!-- leer/escribir STEP (también lo usa generador.html) -->
+  <script defer src="js/cam.js"></script>       <!-- pasadas del ciclo demo a partir de la pieza cargada -->
+  <script defer src="js/objetivo.js"></script>  <!-- la pieza cargada desde un .step -->
+  <script defer src="js/perfil2d.js"></script>
+  <script defer src="js/escena3d.js"></script>
+  <script defer src="js/botonera.js"></script>
+  <script defer src="js/manivelas.js"></script>
+  <script defer src="js/demo.js"></script>
+  <script defer src="js/sonido.js"></script>
+  <script defer src="js/main.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="marca">
+      <svg class="marca__icono" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle class="marca__hueco" cx="20" cy="20" r="6.5"/><path class="marca__garras" d="M20 3.5v9M5.7 28.3l7.8-4.5M34.3 28.3l-7.8-4.5"/></svg>
+      <span class="marca__texto"><strong>TR-01</strong> <span>Torno remoto</span></span>
+    </div>
+    <div class="cabecera__estado">
+      <p class="conexion" id="conexion" data-estado="conectando">
+        <span class="led" aria-hidden="true"></span>
+        <span id="conexion-texto">Conectando…</span>
+        <span class="conexion__dato" id="latencia">— ms</span>
+        <span class="conexion__dato conexion__ultimo" id="ultimo-dato">sin datos</span>
+      </p>
+      <div class="baliza" id="baliza" role="img" aria-label="Torre de señalización: apagada">
+        <span class="baliza__luz baliza__luz--rojo"></span><span class="baliza__luz baliza__luz--ambar"></span><span class="baliza__luz baliza__luz--verde"></span>
+      </div>
+      <time class="reloj-cabecera" id="reloj">--:--:--</time>
+    </div>
+    <div class="cabecera__acciones">
+      <a class="chip" href="generador.html" aria-label="Generador de piezas .step"><span aria-hidden="true">⬡</span> <span>Generador de piezas</span></a>
+      <button class="chip" id="btn-sonido" type="button" aria-pressed="false"><span aria-hidden="true">♪</span> <span class="sonido__texto">Sonido: no</span></button>
+      <button class="chip" id="btn-tema" type="button" aria-pressed="false"><span aria-hidden="true">◐</span> <span class="tema__texto">Tema oscuro</span></button>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="intro" aria-labelledby="titulo">
+      <div class="intro__texto">
+        <p class="antetitulo">Nave 2 · Torno paralelo TR-01 · <abbr title="Maqueta: la máquina y la red se simulan en tu navegador">mock</abbr></p>
+        <h1 id="titulo">Supervisión remota del torno</h1>
+        <p class="intro__entradilla">El gemelo digital, la telemetría y los eventos llegan por un enlace simulado, con latencia, cortes y reconexión. Con el pupitre y las manivelas haces de operario a pie de máquina.</p>
+      </div>
+      <div class="estado" id="estado-banner" data-estado="reposo" role="status" aria-live="polite">
+        <div class="estado__caja">
+          <p class="estado__titulo" id="estado-titulo">Conectando…</p>
+          <p class="estado__detalle" id="estado-detalle">Esperando la primera trama de TR-01</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="tablero">
+      <!-- ============ GEMELO DIGITAL (WebGL2; alternativa: plano 2D) ============ -->
+      <section class="tarjeta gemelo" id="gemelo" aria-labelledby="gemelo-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="gemelo-titulo">Gemelo digital</h2>
+          <div class="gemelo__vistas" role="group" aria-label="Cámara del gemelo">
+            <button type="button" data-vista="general" aria-pressed="true">General</button>
+            <button type="button" data-vista="corte" aria-pressed="false">Zona de corte</button>
+            <button type="button" data-vista="cabezal" aria-pressed="false">Cabezal</button>
+            <button type="button" data-zoom="+" aria-label="Acercar la cámara">+</button>
+            <button type="button" data-zoom="-" aria-label="Alejar la cámara">−</button>
+          </div>
+        </header>
+        <div class="gemelo__lienzo">
+          <canvas id="lienzo-3d" role="img" aria-label="Gemelo digital del torno"></canvas>
+          <canvas id="lienzo-plano" role="img" aria-label="Plano en planta del torno (vista alternativa)" hidden></canvas>
+          <!-- Etiquetas con datos pegadas a la máquina: HTML real colocado con la proyección 3D (decorativas: los
+               mismos datos están en la telemetría, por eso aria-hidden) -->
+          <div class="etiquetas" aria-hidden="true">
+            <div class="etiqueta" data-ancla="husillo"><div class="etiqueta__caja"><b>Husillo</b><span class="etiqueta__valor">parado</span></div></div>
+            <div class="etiqueta" data-ancla="herramienta"><div class="etiqueta__caja"><b>Herramienta</b><span class="etiqueta__valor">—</span></div></div>
+            <div class="etiqueta" data-ancla="contrapunto"><div class="etiqueta__caja"><b>Contrapunto</b><span class="etiqueta__valor">—</span></div></div>
+          </div>
+          <div class="aviso-conexion" id="aviso-conexion" hidden><span aria-hidden="true">⦸</span> <span id="aviso-conexion-texto">Conectando…</span></div>
+          <noscript><p class="sin-js">Activa JavaScript para ver el gemelo 3D y los datos simulados.</p></noscript>
+        </div>
+        <p class="estado-linea" id="estado-3d" role="status">Cargando el gemelo…</p>
+      </section>
+
+      <!-- ============ PUPITRE: hace de operario (manda sobre la máquina simulada) ============ -->
+      <section class="tarjeta pupitre" id="pupitre" aria-labelledby="pupitre-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="pupitre-titulo">Pupitre</h2>
+          <p class="tarjeta__nota">Haces de operario: lo que pulses pasa en la máquina y el panel lo ve llegar por la red.</p>
+        </header>
+        <div class="pupitre__placa">
+          <div class="pupitre__grandes">
+            <div class="mando" data-causa="marcha">
+              <button class="pulsador pulsador--verde" id="btn-marcha" type="button" aria-label="Marcha: arrancar el husillo"><span class="pulsador__cap" aria-hidden="true">I</span></button>
+              <span class="mando__rotulo" aria-hidden="true">Marcha</span>
+            </div>
+            <div class="mando">
+              <button class="pulsador pulsador--rojo" id="btn-paro" type="button" aria-label="Paro del husillo"><span class="pulsador__cap" aria-hidden="true">O</span></button>
+              <span class="mando__rotulo" aria-hidden="true">Paro</span>
+            </div>
+            <div class="mando" data-causa="rearme">
+              <button class="pulsador pulsador--azul" id="btn-rearme" type="button" aria-label="Rearme de alarmas"><span class="pulsador__cap" aria-hidden="true">R</span></button>
+              <span class="mando__rotulo" aria-hidden="true">Rearme</span>
+            </div>
+            <div class="mando mando--seta" data-causa="seta">
+              <button class="seta" id="btn-seta" type="button" aria-pressed="false" aria-label="Seta de emergencia (vuelve a pulsar para desenclavarla)"><span class="seta__cabeza" aria-hidden="true"></span></button>
+              <span class="mando__rotulo" aria-hidden="true">Emergencia</span>
+            </div>
+          </div>
+          <div class="pupitre__fila">
+            <div class="selector" role="group" aria-label="Sentido de giro del husillo">
+              <button type="button" data-sentido="1" aria-pressed="true">↻ M3</button>
+              <span class="selector__mando" aria-hidden="true"><span class="selector__flecha"></span></span>
+              <button type="button" data-sentido="-1" aria-pressed="false">↺ M4</button>
+            </div>
+            <label class="consigna" for="consigna">
+              <span class="consigna__rotulo">Velocidad <output id="consigna-valor" for="consigna">800 rpm</output></span>
+              <input type="range" id="consigna" min="50" max="2000" step="10" value="800">
+            </label>
+          </div>
+          <div class="pupitre__interruptores">
+            <button class="interruptor" id="tg-refrigerante" type="button" role="switch" aria-checked="false"><span class="interruptor__pista" aria-hidden="true"><span class="interruptor__bola"></span></span><span class="interruptor__texto">Taladrina</span></button>
+            <button class="interruptor" id="tg-luz" type="button" role="switch" aria-checked="true"><span class="interruptor__pista" aria-hidden="true"><span class="interruptor__bola"></span></span><span class="interruptor__texto">Luz de trabajo</span></button>
+            <button class="interruptor" id="tg-protector" type="button" role="switch" aria-checked="true" data-causa="protector"><span class="interruptor__pista" aria-hidden="true"><span class="interruptor__bola"></span></span><span class="interruptor__texto">Protector cerrado</span></button>
+            <button class="interruptor" id="tg-plato" type="button" role="switch" aria-checked="true" data-causa="plato"><span class="interruptor__pista" aria-hidden="true"><span class="interruptor__bola"></span></span><span class="interruptor__texto">Plato amarrado</span></button>
+            <button class="interruptor" id="tg-avance" type="button" role="switch" aria-checked="false" data-causa="avance"><span class="interruptor__pista" aria-hidden="true"><span class="interruptor__bola"></span></span><span class="interruptor__texto">Avance automático</span></button>
+          </div>
+          <div class="pupitre__fila pupitre__fila--avance">
+            <span class="pupitre__rotulo" id="rotulo-f">Avance por vuelta (mm/rev)</span>
+            <div class="segmentado" role="group" aria-labelledby="rotulo-f">
+              <button type="button" data-f="0.1" aria-pressed="false">0,1</button>
+              <button type="button" data-f="0.2" aria-pressed="true">0,2</button>
+              <button type="button" data-f="0.4" aria-pressed="false">0,4</button>
+            </div>
+          </div>
+          <div class="pupitre__acciones">
+            <button class="boton" id="btn-barra" type="button" data-causa="barra">Nueva barra</button>
+            <button class="boton boton--acento" id="btn-demo" type="button" aria-pressed="false">▶ Ciclo demo</button>
+          </div>
+          <div class="demo">
+            <div class="progreso" id="demo-progreso" aria-hidden="true"><span></span></div>
+            <p class="estado-linea" id="demo-estado" aria-live="polite">El ciclo demo mecaniza una pieza solo: desbaste, escalón, ranura y chaflán.</p>
+          </div>
+          <p class="pupitre__aviso" id="pupitre-aviso" role="status"></p>
+        </div>
+      </section>
+
+      <!-- ============ MANIVELAS ============ -->
+      <section class="tarjeta manivelas" id="manivelas" aria-labelledby="manivelas-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="manivelas-titulo">Manivelas</h2>
+          <p class="tarjeta__nota">Arrastra en círculo, usa las flechas del teclado o los botones. En sentido horario, hacia la pieza.</p>
+        </header>
+        <div class="volantes">
+          <div class="volante" data-eje="z">
+            <div class="volante__rueda" role="slider" tabindex="0" aria-label="Volante del carro longitudinal, eje Z"></div>
+            <h3 class="volante__nombre">Carro <span class="volante__eje">Z</span></h3>
+            <p class="volante__valor"><output>+30,00 mm</output></p>
+            <div class="volante__botones">
+              <button type="button" data-paso="-1" aria-label="Carro 5 mm hacia el plato">−5</button>
+              <button type="button" data-paso="1" aria-label="Carro 5 mm hacia el contrapunto">+5</button>
+            </div>
+            <p class="volante__pista">1 vuelta = 24 mm · 120 div.</p>
+          </div>
+          <div class="volante" data-eje="x">
+            <div class="volante__rueda" role="slider" tabindex="0" aria-label="Volante del carro transversal, eje X"></div>
+            <h3 class="volante__nombre">Transversal <span class="volante__eje">X</span></h3>
+            <p class="volante__valor"><output>Ø64,00 mm</output></p>
+            <div class="volante__botones">
+              <button type="button" data-paso="-1" aria-label="Transversal: 1 mm menos de diámetro">−1</button>
+              <button type="button" data-paso="1" aria-label="Transversal: 1 mm más de diámetro">+1</button>
+            </div>
+            <p class="volante__pista">1 vuelta = 4 mm en Ø · 100 div.</p>
+          </div>
+          <div class="volante" data-eje="c">
+            <div class="volante__rueda" role="slider" tabindex="0" aria-label="Volante de la caña del contrapunto"></div>
+            <h3 class="volante__nombre">Contrapunto <span class="volante__eje">caña</span></h3>
+            <p class="volante__valor"><output>0,0 mm</output></p>
+            <div class="volante__botones">
+              <button type="button" data-paso="-1" aria-label="Recoger la caña 5 mm">−5</button>
+              <button type="button" data-paso="1" aria-label="Sacar la caña 5 mm hacia la pieza">+5</button>
+            </div>
+            <p class="volante__pista">1 vuelta = 4 mm · 40 div.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VISUALIZADOR DE COTAS Y CONTADORES ============ -->
+      <section class="tarjeta cotas" id="cotas" aria-labelledby="cotas-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="cotas-titulo">Visualizador de cotas</h2>
+          <p class="tarjeta__nota">Dato remoto</p>
+        </header>
+        <dl class="dro">
+          <div class="dro__fila"><dt>X <small>Ø mm</small></dt><dd id="dro-x">—</dd></div>
+          <div class="dro__fila"><dt>Z <small>mm</small></dt><dd id="dro-z">—</dd></div>
+          <div class="dro__fila"><dt>C <small>caña mm</small></dt><dd id="dro-c">—</dd></div>
+          <div class="dro__fila dro__fila--peq"><dt>S <small>rpm</small></dt><dd id="dro-s">—</dd></div>
+          <div class="dro__fila dro__fila--peq"><dt>F <small>mm/rev</small></dt><dd id="dro-f">—</dd></div>
+        </dl>
+        <dl class="contadores">
+          <div><dt>Pieza en curso</dt><dd>nº <span id="cont-numero">—</span></dd></div>
+          <div><dt>Terminadas</dt><dd id="cont-piezas">—</dd></div>
+          <div><dt>Horas de husillo</dt><dd id="cont-husillo">—</dd></div>
+          <div><dt>Viruta (cm³)</dt><dd id="cont-viruta">—</dd></div>
+        </dl>
+      </section>
+
+      <!-- ============ TELEMETRÍA ============ -->
+      <section class="tarjeta telemetria" id="telemetria" aria-labelledby="telemetria-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="telemetria-titulo">Telemetría</h2>
+          <p class="tarjeta__nota">10 tramas por segundo</p>
+        </header>
+        <div class="relojes">
+          <figure class="reloj" data-reloj="rpm"><figcaption>Husillo <small>rpm</small></figcaption></figure>
+          <figure class="reloj" data-reloj="carga"><figcaption>Carga <small>%</small></figcaption></figure>
+          <figure class="reloj" data-reloj="temp"><figcaption>Cabezal <small>°C</small></figcaption></figure>
+          <figure class="reloj" data-reloj="potencia"><figcaption>Potencia <small>kW</small></figcaption></figure>
+        </div>
+        <figure class="tendencia">
+          <canvas id="lienzo-tendencia" role="img" aria-label="Gráfica de los últimos 60 segundos: velocidad, carga y temperatura"></canvas>
+          <figcaption class="leyenda">
+            <span class="leyenda__item leyenda__item--rpm">Velocidad (0–2000 rpm)</span>
+            <span class="leyenda__item leyenda__item--carga">Carga (0–150 %)</span>
+            <span class="leyenda__item leyenda__item--temp">Temperatura (20–80 °C)</span>
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ============ GRAFCET (el SVG se entiende sin JS; grafcet.js enciende la etapa activa) ============ -->
+      <section class="tarjeta grafcet" id="grafcet" aria-labelledby="grafcet-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="grafcet-titulo">Estado (GRAFCET)</h2>
+          <p class="tarjeta__nota">Etapa activa y última transición</p>
+        </header>
+        <svg class="grafcet__svg" viewBox="0 0 400 300" role="img" aria-labelledby="grafcet-desc">
+          <title id="grafcet-desc">GRAFCET del torno: etapa 0 reposo, 1 husillo en marcha, 2 avance automático y 3 emergencia</title>
+          <defs>
+            <marker id="g-flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" class="g-flecha"/></marker>
+          </defs>
+          <path id="g-c01" class="g-enlace" d="M80 70 V126"/>
+          <path id="g-c12" class="g-enlace" d="M80 170 V226"/>
+          <path id="g-c21" class="g-enlace" d="M80 270 V288 H272 V112 H82" marker-end="url(#g-flecha)"/>
+          <path id="g-c10" class="g-enlace" d="M58 148 H24 V10 H80 V24" marker-end="url(#g-flecha)"/>
+          <path id="g-c20" class="g-enlace" d="M58 248 H24 V10 H80 V24"/>
+          <path id="g-c30" class="g-enlace" d="M340 26 V10 H80 V24"/>
+          <path id="g-cx3" class="g-enlace g-enlace--forzado" d="M394 150 V48 H364" marker-end="url(#g-flecha)"/>
+          <g id="g-t01" class="g-trans"><line x1="68" y1="98" x2="92" y2="98"/><text x="100" y="102">Marcha · protector y plato OK</text></g>
+          <g id="g-t12" class="g-trans"><line x1="68" y1="198" x2="92" y2="198"/><text x="100" y="202">Avance ON</text></g>
+          <g id="g-t21" class="g-trans"><line x1="260" y1="210" x2="284" y2="210"/><text x="290" y="207">Avance OFF</text><text x="290" y="219">fin de carrera</text></g>
+          <g id="g-tparo" class="g-trans"><line x1="12" y1="110" x2="36" y2="110"/><text x="24" y="128" text-anchor="middle">Paro</text></g>
+          <g id="g-t30" class="g-trans"><line x1="250" y1="2" x2="250" y2="18"/><text x="250" y="30" text-anchor="middle">Rearme</text></g>
+          <g id="g-tforzado" class="g-trans g-trans--forzado"><text x="345" y="166" text-anchor="middle">seta o sobrecarga</text><text x="345" y="178" text-anchor="middle">(desde cualquier etapa)</text></g>
+          <g id="g-etapa-0" class="g-etapa g-etapa--inicial">
+            <rect class="g-caja" x="58" y="26" width="44" height="44"/><rect class="g-caja-interior" x="62" y="30" width="36" height="36"/>
+            <text class="g-num" x="80" y="54">0</text>
+            <line class="g-unir" x1="102" y1="48" x2="118" y2="48"/><rect class="g-accion" x="118" y="34" width="120" height="28"/>
+            <text class="g-accion-texto" x="178" y="52">Reposo · lista</text>
+          </g>
+          <g id="g-etapa-1" class="g-etapa">
+            <rect class="g-caja" x="58" y="126" width="44" height="44"/><text class="g-num" x="80" y="154">1</text>
+            <line class="g-unir" x1="102" y1="148" x2="118" y2="148"/><rect class="g-accion" x="118" y="134" width="140" height="28"/>
+            <text class="g-accion-texto" id="g-accion-1" x="188" y="152">Husillo M3 · S 800</text>
+          </g>
+          <g id="g-etapa-2" class="g-etapa">
+            <rect class="g-caja" x="58" y="226" width="44" height="44"/><text class="g-num" x="80" y="254">2</text>
+            <line class="g-unir" x1="102" y1="248" x2="118" y2="248"/><rect class="g-accion" x="118" y="234" width="140" height="28"/>
+            <text class="g-accion-texto" id="g-accion-2" x="188" y="252">Avance Z− · f 0,20</text>
+          </g>
+          <g id="g-etapa-3" class="g-etapa g-etapa--emergencia">
+            <rect class="g-caja" x="318" y="26" width="44" height="44"/><text class="g-num" x="340" y="54">3</text>
+            <rect class="g-accion" x="290" y="80" width="94" height="26"/><text class="g-accion-texto" x="337" y="97">Frenado · alarma</text>
+          </g>
+          <circle id="g-pulso" class="g-pulso" r="5" cx="0" cy="0"/>
+        </svg>
+        <p class="estado-linea" id="grafcet-motivo">Última transición: —</p>
+      </section>
+
+      <!-- ============ PERFIL DE LA PIEZA (plano 2D) ============ -->
+      <section class="tarjeta perfil" id="perfil" aria-labelledby="perfil-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="perfil-titulo">Perfil de la pieza</h2>
+          <!-- Carga de la pieza a mecanizar: el botón abre la ventana de búsqueda de archivos del sistema -->
+          <div class="perfil__acciones">
+            <button class="chip" id="btn-cargar-step" type="button">Cargar pieza (.step)…</button>
+            <button class="chip" id="btn-voltear-step" type="button" hidden title="Cambia qué extremo de la pieza queda en la cara libre">⇄ Voltear</button>
+            <button class="chip" id="btn-quitar-step" type="button" hidden>Quitar</button>
+            <input type="file" id="archivo-step" accept=".step,.stp,.STEP,.STP" hidden>
+          </div>
+        </header>
+        <p class="tarjeta__nota">Plano en planta reconstruido con la telemetría. En naranja discontinuo, la pieza cargada (cota final). ¿No tienes un .step? Hazlo con el <a href="generador.html">generador</a> a partir de un esquema.</p>
+        <canvas id="lienzo-perfil" role="img" aria-label="Plano de la pieza"></canvas>
+        <p class="perfil__tramos"><span class="perfil__rotulo">Tramos mecanizados:</span> <span id="perfil-tramos">barra en bruto Ø50,00 (sin mecanizar)</span></p>
+        <p class="estado-linea perfil__objetivo" id="perfil-objetivo" role="status" data-nivel="info">Sin pieza cargada: el ciclo demo hace su pieza de ejemplo.</p>
+      </section>
+
+      <!-- ============ ENLACE CON LA MÁQUINA ============ -->
+      <section class="tarjeta enlace" id="enlace" aria-labelledby="enlace-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="enlace-titulo">Enlace con la máquina</h2>
+          <p class="tarjeta__nota">Pasarela simulada · 10 tramas/s</p>
+        </header>
+        <div class="enlace__diagrama">
+          <span class="nodo"><b>TR-01</b><small>máquina</small></span>
+          <div class="enlace__pista" id="enlace-pista" aria-hidden="true"></div>
+          <span class="nodo"><b>Panel</b><small>tu navegador</small></span>
+        </div>
+        <dl class="enlace__datos">
+          <div><dt>Latencia</dt><dd id="dato-latencia">—</dd></div>
+          <div><dt>Tramas</dt><dd id="dato-tramas">—</dd></div>
+          <div><dt>Eventos en cola</dt><dd id="dato-cola">0</dd></div>
+        </dl>
+        <svg class="enlace__grafica" viewBox="0 0 200 40" preserveAspectRatio="none" role="img" aria-label="Latencia de los últimos 6 segundos"><polyline id="enlace-latencias" points=""/></svg>
+        <div class="enlace__acciones">
+          <button class="boton" id="btn-conexion" type="button" aria-pressed="false" disabled>Espera…</button>
+          <button class="boton boton--peligro" id="btn-paro-remoto" type="button">Paro remoto</button>
+        </div>
+      </section>
+
+      <!-- ============ REGISTRO DE EVENTOS ============ -->
+      <section class="tarjeta registro" id="registro" aria-labelledby="registro-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="registro-titulo">Registro de eventos</h2>
+          <div class="registro__herramientas">
+            <span class="registro__cuentas"><span id="cuenta-eventos">0</span> eventos · <span id="cuenta-alarmas">0</span> avisos y alarmas</span>
+            <div class="segmentado" role="group" aria-label="Filtro del registro">
+              <button type="button" data-filtro="todo" aria-pressed="true">Todo</button>
+              <button type="button" data-filtro="alertas" aria-pressed="false">Avisos y alarmas</button>
+            </div>
+            <button class="chip" type="button" id="btn-vaciar">Vaciar</button>
+          </div>
+        </header>
+        <ol class="eventos" id="lista-eventos" role="log" aria-live="polite" aria-label="Eventos recibidos de la máquina"></ol>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <p><strong>TR-01 · Torno remoto</strong> — maqueta (mock): la máquina y la red se simulan en tu navegador; no se envía nada a ningún sitio.</p>
+    <p>HTML, CSS, WebGL2 con un motor propio y Anime.js v4. Funciona sin conexión y con doble clic.</p>
+  </footer>
+</body>
+</html>

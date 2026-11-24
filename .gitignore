@@ -1,0 +1,6 @@
+# Capturas y temporales del verificador (se generan fuera, pero por si acaso)
+verificar-web/
+*.tmp
+.claude/
+Thumbs.db
+desktop.ini

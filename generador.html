@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TR-01 · Generador de piezas .step</title>
+  <meta name="description" content="Convierte la imagen de un esquema de mecanizado en una pieza de revolución .step: calibra la escala, marca el eje y el contorno, corrige las cotas y descarga el archivo.">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2040%2040'%3E%3Ccircle%20cx%3D'20'%20cy%3D'20'%20r%3D'18'%20fill%3D'%23ff7a1a'%2F%3E%3Ccircle%20cx%3D'20'%20cy%3D'20'%20r%3D'6.5'%20fill%3D'%2315191d'%2F%3E%3Cpath%20d%3D'M20%203.5v9M5.7%2028.3l7.8-4.5M34.3%2028.3l-7.8-4.5'%20stroke%3D'%2315191d'%20stroke-width%3D'4.5'%2F%3E%3C%2Fsvg%3E">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/generador.css">
+  <!-- Scripts clásicos con defer (doble clic, file://). step.js es el MISMO que usa el torno para leer. -->
+  <script defer src="js/soporte.js"></script>
+  <script defer src="js/step.js"></script>
+  <script defer src="js/ejemplo-esquema.js"></script>
+  <script defer src="js/tema-paginas.js"></script>
+  <script defer src="js/generador.js"></script>
+</head>
+<body class="pagina-generador">
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+  <header class="cabecera">
+    <div class="marca">
+      <svg class="marca__icono" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18"/><circle class="marca__hueco" cx="20" cy="20" r="6.5"/><path class="marca__garras" d="M20 3.5v9M5.7 28.3l7.8-4.5M34.3 28.3l-7.8-4.5"/></svg>
+      <span class="marca__texto"><strong>TR-01</strong> <span>Generador de piezas</span></span>
+    </div>
+    <nav class="cabecera__acciones" aria-label="Páginas">
+      <a class="chip" href="index.html" aria-label="Volver al torno"><span aria-hidden="true">←</span> <span>Torno</span></a>
+      <a class="chip chip--acento" href="tutorial.html" aria-label="Tutorial del modo semiasistido"><span aria-hidden="true">?</span> <span>Tutorial</span></a>
+      <button class="chip" id="btn-tema" type="button" aria-pressed="false"><span aria-hidden="true">◐</span> <span class="tema__texto">Tema oscuro</span></button>
+    </nav>
+  </header>
+
+  <main id="contenido" class="gen">
+    <section class="intro gen__intro" aria-labelledby="titulo">
+      <div class="intro__texto">
+        <p class="antetitulo">Modo semiasistido · esquema → .step</p>
+        <h1 id="titulo">Generador de piezas de torno</h1>
+        <p class="intro__entradilla">Abre la imagen del plano, dile cuánto mide una cota, marca el eje y haz clic en las esquinas del contorno. Corrige las cifras con las cotas del plano y descarga un <strong>.step</strong> que el torno sabe mecanizar. ¿Primera vez? Mira el <a href="tutorial.html">tutorial paso a paso</a>.</p>
+      </div>
+      <ol class="pasos" id="pasos" aria-label="Progreso">
+        <li data-paso="imagen">Esquema</li><li data-paso="escala">Escala</li><li data-paso="eje">Eje</li><li data-paso="contorno">Contorno</li><li data-paso="exportar">.step</li>
+      </ol>
+    </section>
+
+    <div class="gen__tablero">
+      <!-- ============ ESQUEMA (imagen + marcas) ============ -->
+      <section class="tarjeta gen__esquema" aria-labelledby="esquema-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="esquema-titulo">Esquema</h2>
+          <div class="gen__barra">
+            <button class="boton boton--acento" id="btn-abrir" type="button">Abrir esquema…</button>
+            <button class="boton" id="btn-ejemplo" type="button">Usar el ejemplo</button>
+            <input type="file" id="archivo-imagen" accept="image/*,.svg" hidden>
+          </div>
+        </header>
+        <div class="gen__herramientas">
+          <div class="segmentado" role="group" aria-label="Herramienta">
+            <button type="button" data-modo="escala" aria-pressed="false" title="Atajo: 1">1 · Escala</button>
+            <button type="button" data-modo="eje" aria-pressed="false" title="Atajo: 2">2 · Eje</button>
+            <button type="button" data-modo="contorno" aria-pressed="false" title="Atajo: 3">3 · Contorno</button>
+          </div>
+          <label class="casilla"><input type="checkbox" id="opt-iman" checked> Imán a líneas</label>
+          <label class="casilla"><input type="checkbox" id="opt-orto" checked> Ortogonal</label>
+          <label class="casilla">Redondeo
+            <select id="opt-redondeo">
+              <option value="0.01">0,01 mm</option><option value="0.1">0,1 mm</option><option value="0.5" selected>0,5 mm</option><option value="1">1 mm</option>
+            </select>
+          </label>
+          <div class="gen__zoom" role="group" aria-label="Zoom">
+            <button class="chip" type="button" id="btn-deshacer" title="Ctrl + Z">↶ Deshacer</button>
+            <button class="chip" type="button" data-zoom="-" aria-label="Alejar">−</button>
+            <button class="chip" type="button" data-zoom="ajustar" title="Atajo: 0">Ajustar</button>
+            <button class="chip" type="button" data-zoom="+" aria-label="Acercar">+</button>
+          </div>
+        </div>
+        <div class="gen__lienzo" id="zona-lienzo">
+          <canvas id="lienzo-esquema" tabindex="0" role="img" aria-label="Esquema cargado con las marcas de escala, eje y contorno" data-verificar-scroll="0"></canvas>
+          <div class="gen__vacio" id="vacio">
+            <p><strong>Arrastra aquí una imagen del plano</strong> o pulsa «Abrir esquema…».</p>
+            <p>PNG, JPG, WebP o SVG · vista de alzado, sin perspectiva.</p>
+          </div>
+          <!-- Formulario de la escala: aparece tras marcar los dos extremos de la cota -->
+          <form class="gen__escala" id="form-escala" hidden>
+            <label for="escala-mm">¿Cuánto mide esa cota en el plano?</label>
+            <span class="gen__fila"><input type="number" id="escala-mm" min="0.1" step="0.01" required inputmode="decimal"> mm
+            <button class="boton boton--acento" type="submit">Aceptar</button><button class="boton" type="button" id="escala-cancelar">Cancelar</button></span>
+          </form>
+        </div>
+        <p class="estado-linea gen__ayuda" id="ayuda" role="status" aria-live="polite">Paso 1: abre la imagen del esquema (o usa el ejemplo).</p>
+        <p class="gen__atajos">Clic: marcar · arrastrar: mover la imagen · rueda: zoom · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> herramienta · <kbd>Ctrl</kbd>+<kbd>Z</kbd> deshacer · <kbd>Esc</kbd> cancelar · <kbd>0</kbd> ajustar</p>
+      </section>
+
+      <!-- ============ DATOS DE LA PIEZA (tabla editable) ============ -->
+      <section class="tarjeta gen__datos" aria-labelledby="datos-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="datos-titulo">Puntos del contorno</h2>
+          <p class="tarjeta__nota" id="escala-info">Sin escala</p>
+        </header>
+        <label class="campo">Nombre de la pieza <input type="text" id="nombre" value="pieza" maxlength="40" spellcheck="false"></label>
+        <p class="tarjeta__nota">Z desde el extremo del <strong>plato</strong> (izquierda) hacia la <strong>cara libre</strong>. Escribe aquí las cotas exactas del plano: los clics solo dan una aproximación.</p>
+        <div class="gen__tabla-caja">
+          <table class="gen__tabla">
+            <thead><tr><th scope="col">#</th><th scope="col">Z (mm)</th><th scope="col">Ø (mm)</th><th scope="col">Tramo</th><th scope="col"><span class="visualmente-oculto">Quitar</span></th></tr></thead>
+            <tbody id="tabla-puntos"><tr class="gen__tabla-vacia"><td colspan="5">Aún no hay puntos.</td></tr></tbody>
+          </table>
+        </div>
+        <details class="gen__manual">
+          <summary>Añadir un tramo escribiendo las cotas</summary>
+          <form id="form-tramo" class="gen__tramo">
+            <label>Ø inicial <input type="number" id="tramo-d0" min="1" step="0.01" placeholder="igual"></label>
+            <label>Ø final <input type="number" id="tramo-d1" min="1" step="0.01" placeholder="igual"></label>
+            <label>Longitud <input type="number" id="tramo-l" min="0.1" step="0.01" required></label>
+            <button class="boton" type="submit">Añadir</button>
+          </form>
+          <p class="tarjeta__nota">Cilindro: deja el Ø final vacío. Cono o chaflán: pon los dos Ø. Si el Ø inicial cambia respecto al último punto, se crea un escalón.</p>
+        </details>
+        <div class="gen__botones">
+          <button class="boton" id="btn-borrar" type="button">Borrar el contorno</button>
+        </div>
+      </section>
+
+      <!-- ============ VISTA PREVIA Y EXPORTACIÓN ============ -->
+      <section class="tarjeta gen__previa" aria-labelledby="previa-titulo">
+        <header class="tarjeta__cabecera">
+          <h2 id="previa-titulo">Vista previa y .step</h2>
+          <p class="tarjeta__nota">En discontinuo, la barra del torno (Ø50, 136 mm útiles)</p>
+        </header>
+        <canvas id="lienzo-previa" role="img" aria-label="Plano de la pieza generada"></canvas>
+        <ul class="comprobaciones" id="comprobaciones" aria-label="Comprobaciones"></ul>
+        <div class="gen__botones">
+          <button class="boton boton--acento" id="btn-descargar" type="button" disabled>Descargar .step</button>
+          <a class="boton" href="index.html">Ir al torno para cargarlo →</a>
+        </div>
+        <p class="estado-linea" id="estado-descarga" role="status"></p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <p><strong>TR-01 · Generador de piezas</strong> — todo se hace en tu navegador: la imagen no sale de tu equipo.</p>
+    <p>El .step es un sólido de revolución (AP214) con caras planas, cilíndricas y cónicas: se abre en FreeCAD, Fusion o SolidWorks.</p>
+  </footer>
+</body>
+</html>
