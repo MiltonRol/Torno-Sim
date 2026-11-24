@@ -33,7 +33,7 @@ Sigue la skill `web-creativa`: **se abre con doble clic en `index.html`**, sin P
   4. **Tabla**: aquí se corrigen las cotas exactas. También sirve para hacer la pieza sin imagen.
   5. **Descargar .step**: sólido de revolución AP214 (planos, cilindros y conos) que se relee antes de descargarlo.
 - **`tutorial.html`**: el tutorial de ese modo en una pantalla aparte (7 pasos con figuras sobre el esquema de ejemplo, atajos, límites y problemas frecuentes).
-- **`ejemplos/`**: `eje-ejemplo.svg` (plano para practicar) y `eje-ejemplo.step` (su solución). El mismo dibujo está en `js/ejemplo-esquema.js` para el botón «Usar el ejemplo».
+- **`ejemplos/`**: `eje-ejemplo.svg` (plano para practicar) y `eje-ejemplo.step` (su solución). También `Pieza Ejemplo Sr.Espinosa.step` (80 mm, Ø máx. 33,9), hecha con el generador a partir de un plano en JPG. El mismo dibujo está en `js/ejemplo-esquema.js` para el botón «Usar el ejemplo».
 
 ## Modos y atajos
 
